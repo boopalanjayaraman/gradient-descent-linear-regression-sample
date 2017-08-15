@@ -7,12 +7,14 @@ import logging.handlers
 
 '''
 This python program is to do a sample gradient descent run on a single variable linear regression problem.
+This attempts the approach to minimize the actual cost function (J) while calculating gradients of m (also known as theta / slope) and b (also known as c - constant in standard equations)
+J = (1/2*n) * SUM (hi - yi)^2 where hi can be defined by m*xi + b
 '''
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger('LinearRegressionFirst')
 
-logStepGradients = True
+logStepGradients = False
 
 '''
 run() - entry method
@@ -33,6 +35,8 @@ def run():
 	#fetch values from data file
 	points = np.genfromtxt(data_file_path, delimiter=',')
 	
+	#normalize features
+	
 	logger.info('fetched from datafile and generated points.')
 	row_count = len(points[0:, 0:])
 	logger.info('rows count: {0}'.format(row_count))
@@ -42,7 +46,7 @@ def run():
 	logger.info('parameters value before grad descent: b = {0}, m = {1}, initial_error = {2}'.format(initial_b, initial_m, initial_error))
 	
 	#execute gradient descent process
-	[final_b, final_m] = execute_gradient_descent(points, learning_rate, iterations, initial_b, initial_m)
+	[final_b, final_m] = execute_gradient_descent(points, learning_rate, iterations, initial_b, initial_m, initial_error)
 	
 	#compute final error
 	final_error = compute_error_for_points(final_b, final_m, points)
@@ -51,17 +55,36 @@ def run():
 '''
 execute_gradient_descent() - entry method for gradient descent 
 '''
-def execute_gradient_descent(points, learning_rate, iterations, initial_b, initial_m):
+def execute_gradient_descent(points, learning_rate, iterations, initial_b, initial_m, initial_error):
 	
 	logger.info('entered execute_gradient_descent.')
 	
 	b = initial_b
 	m = initial_m
+	iter_error = initial_error
+	
 	points_array = np.array(points)
 	
 	logger.info('initiated step gradient descent process.')
 	for i in range(iterations):
+		#store previous values of m, b and error for comparing with next iteration calculations, to decide if it improves
+		[prev_b, prev_m] = [b,m]
+		prev_iter_error = iter_error
+		
+		#execute step gradient process
 		[b,m] = step_gradient(b, m, points_array, learning_rate, i)
+		
+		#compute the error for this iteration
+		iter_error = compute_error_for_points(b, m, points)
+		
+		#compare and break if error increases, else continue
+		logger.info('error for this iteration: {0}.'.format(iter_error))
+		if(iter_error < prev_iter_error):
+			logger.info('error reduced. Can continue the iterations')
+		else:
+			logger.info('error increased. May be crossing the minima.')
+			[b,m] = [prev_b, prev_m]
+			break
 		
 	return [b,m]
 
